@@ -2,8 +2,7 @@ import cv2
 import numpy as np
 import mysql.connector
 import time
-from collections import deque
-import datetime
+from collections import deque 
 import multiprocessing
 
 def create_heatmap(gray_image, coords, radius=10, intensity=8, blur_size=30, normalize=True):
@@ -63,14 +62,9 @@ def main():
             database="Customers"
         )
         new_coords = get_coordinates_from_db(db_connection)
-
-        if len(new_coords) == 0:
-            if cv2.waitKey(1000) & 0xFF == ord('q'):
-                break
-        else:
-            existing_coords.extend(new_coords)
-            coords_queue.put(list(existing_coords))
-            image_queue.put(image)
+        existing_coords.extend(new_coords)
+        coords_queue.put(list(existing_coords))
+        image_queue.put(image)
 
         db_connection.close()
         time.sleep(1)
