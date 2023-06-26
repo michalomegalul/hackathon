@@ -14,37 +14,42 @@ def create_heatmap(gray_image, coords, radius=10, intensity=8, blur_size=30, nor
         heatmap /= np.max(heatmap)
     return heatmap
 
-def get_coordinates_from_db(db_connection, last_max_timestamp):
+def get_coordinates_from_db(db_connection):
     cursor = db_connection.cursor()
-    query = '''
+    #cursor2 = db_connection.cursor2()
+    #cursor2.execute(query2)
+    #result2 = cursor.fetchone()
+    #query2 = "SELECT timestamp FROM Customers"
+    query = f'''
     SELECT x_pos, y_pos, timestamp
     FROM Customers
-    WHERE timestamp > %s
-    ORDER BY timestamp DESC
-    LIMIT 1
+    WHERE timestamp= (SELECT MAX(timestamp) FROM Customers)
     '''
-    cursor.execute(query, (last_max_timestamp.strftime('%Y-%m-%d %H:%M:%S'),))
-    result = cursor.fetchone()
-    if result:
-        new_coords = [(result[0], result[1], result[2])]
-        max_timestamp = result[2]
-    else:
-        new_coords = []
-        max_timestamp = last_max_timestamp
+    #print(result2)
+
+    print((datetime.datetime.now()).strftime("%Y-%m-%d-%H:%M:%S"))
+    cursor.execute(query)
+    result = cursor.fetchall()
+    print(result)
+    # if result:
+    #     new_coords = [(result[0], result[1], result[2])]
+    #     max_timestamp = result[2]
+    # else:
+    #     new_coords = []
+    #     max_timestamp = last_max_timestamp
 
     cursor.close()
-    return new_coords, max_timestamp
+    return result
 
 def main():
     # Load an image
     image = cv2.imread('PXL_20230626_115014611.jpg')
     image_resize = cv2.resize(image, (1080, 720))
-    num_dots_to_show = 5
+    num_dots_to_show = 30
     existing_coords = deque(maxlen=num_dots_to_show)
 
     gray_image = cv2.cvtColor(image_resize, cv2.COLOR_BGR2GRAY)
 
-    last_max_timestamp = datetime.datetime.min
 
     while True:
         # Reconnect to the database
@@ -55,7 +60,7 @@ def main():
             database="Customers"
         )
 
-        new_coords, max_timestamp = get_coordinates_from_db(db_connection, last_max_timestamp)
+        new_coords = get_coordinates_from_db(db_connection)
 
         if len(new_coords) == 0:
             print("No new data")
@@ -75,9 +80,7 @@ def main():
 
             cv2.imshow('Image with Heatmap Overlay', weighted_image)
 
-            last_max_timestamp = max_timestamp
-
-            if cv2.waitKey(1000) & 0xFF == ord('q'):
+            if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
 
         # Close the database connection and add a delay before the next iteration
